@@ -7,6 +7,10 @@
 #include "point.h"
 #include <time.h>
 
+clock_t start;
+clock_t end;
+double sorting_time;
+double algorithm_time;
 
 DynamicArray<point> parseFile(std::string path)
 {
@@ -16,21 +20,24 @@ DynamicArray<point> parseFile(std::string path)
 	
 	int i = 0; 
 	input_file >> i;
+	int k = i;
 	double x=0.0, y=0.0;
 	for (; i > 0; i--)
 	{
 		input_file >> x >> y;
-		tab.add(point(x, y,i));
+		tab.add(point(x, y,k-i));
 	}
 	return tab;
 }
 
-bool static cmp(point obj1, point obj2)
+inline bool cmp(point obj1, point obj2)
 {
-	double product = (obj1.y * obj2.x) - (obj2.y * obj1.x);
-	if (product == 0.0)
-		return (obj1.x < obj2.x);
-	return (product < 0.0);
+	return (((obj1.y * obj2.x) - (obj2.y * obj1.x)) <= 0.0);
+}
+
+inline bool equal(point obj1, point obj2)
+{
+	return (obj1.x == obj2.x && obj1.y == obj2.y);
 }
 
 bool static smallest_point(point obj1, point obj2)
@@ -46,10 +53,10 @@ bool static smallest_point(point obj1, point obj2)
 
 void static printer(const point obj)
 {
-	std::cout << obj.x << " , " << obj.y << std::endl;
+	std::cout << obj.index << " | " << obj.x << " , " << obj.y << std::endl;
 }
 
-void static printer2(const point obj)
+void printer2(const point obj)
 {
 	static int wiersz = 0;
 	if (wiersz == 10)
@@ -61,20 +68,31 @@ void static printer2(const point obj)
 	wiersz++;
 }
 
-inline point static sub_points(point obj1, point obj2)
+point sub_points(point obj1, point obj2)
 {
-	return point(obj2.x - obj1.x, obj2.y - obj1.y);
+	return point(obj1.x - obj2.x, obj1.y - obj2.y,obj1.index);
 }
 
 list<point> graham_scan(DynamicArray<point> tab)
 {
 	list<point> convex_hull;
 	//std::cout << std::endl;
-	point p0 = tab.find(smallest_point);
+	point p0 = tab.get_max_min(smallest_point);
+	tab.remove(p0,equal);
 	/*printer(start);
 	std::cout << std::endl;*/
 	//tab.print(printer);
 	//std::cout << std::endl;
+	for (int i = 0; i < tab.get_current_size(); i++)
+	{
+		tab[i] = sub_points(tab[i], p0);
+	}
+
+	start = clock();
+	heap_sort_inplace<point>(tab, cmp);
+	end = clock();
+	sorting_time = (double(end) - double(start)) / CLOCKS_PER_SEC;
+	//tab.print(printer);
 	
 	convex_hull.add_tail(p0);
 	convex_hull.add_tail(tab[0]);
@@ -82,14 +100,18 @@ list<point> graham_scan(DynamicArray<point> tab)
 	std::cout << std::endl;*/
 	int stop = (int)tab.get_current_size();
 	int i = 1;
+	//convex_hull.remove_position(1);
+	//convex_hull.print(printer);
+	std::cout << std::endl;
 	for (int k = 1; k <= stop; k++)
 	{
 		convex_hull.add_tail(tab[k]);
-		if (cmp(sub_points(convex_hull.get_element((long long)(i + 1)), convex_hull.get_element(i)), sub_points(convex_hull.get_element(i), convex_hull.get_element((long long)(i - 1)))))
+		while (!cmp(sub_points(convex_hull.get_element((long long)(i - 1)), convex_hull.get_element(i)),sub_points(convex_hull.get_element(i), convex_hull.get_element((long long)(i + 1)))))
 		{
 			convex_hull.remove_position(i);
+			i--;
 		}
-		else i++;
+		i++;
 		/*convex_hull.print(printer);
 		std::cout << std::endl;*/
 	}
@@ -97,29 +119,19 @@ list<point> graham_scan(DynamicArray<point> tab)
 	return convex_hull;
 }
 
-clock_t start;
-clock_t end;
-double sorting_time;
-double algorithm_time;
-
 int main()
 {
 	DynamicArray<point> points = parseFile("points5.txt");	
 	DynamicArray<point> points2 = points.copy();
-	//points.print(printer);
+	//points2.print(printer);
 	//std::cout << std::endl;
-
-	start = clock();
-	heap_sort_inplace<point>(points2, cmp);
-	end = clock();
-	sorting_time = (double(end) - double(start)) / CLOCKS_PER_SEC;
 
 	start = clock();
 	list<point> powloka = graham_scan(points2);
 	end = clock();
 	algorithm_time = (double(end) - double(start)) / CLOCKS_PER_SEC;
 
-	std::cout << "Czas sortowania: " << sorting_time << " | Czas pracy algorytmu: " << algorithm_time << std::endl;
+	std::cout << "Czas sortowania: " << sorting_time << " | Czas pracy algorytmu: " << algorithm_time-sorting_time << std::endl;
 	std::cout << "Liczba punktow w powloce: " << powloka.get_size() << " | Indeksy punktow powloki: " << std::endl;
 	powloka.print(printer2);
 }

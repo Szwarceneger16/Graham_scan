@@ -76,7 +76,7 @@ public:
 	{
 		DynamicArray<T> copy;
 		int stop = this->get_current_size();
-		for (int i = 0; i < stop; i++)
+		for (int i = 0; i <= stop; i++)
 		{
 			copy.add(*(this->array_pointer + i));
 		}	
@@ -85,10 +85,10 @@ public:
 
 	T get_max_min(bool (*fun)(T const, T const))
 	{
-		T tmp = NULL;
-		for (long long i = 0; i <= this->current_size; i++)
+		T tmp = array_pointer[0];
+		for (long long i = 1; i < current_size - 1; i++)
 		{
-			if (fun(tmp,*(this->array_pointer + i))) tmp = *(this->array_pointer + i);
+			if (fun(tmp, array_pointer[i])) tmp = array_pointer[i];
 		}
 		return tmp;
 	}
@@ -149,14 +149,47 @@ public:
 		}
 	}
 
-	T& find(bool (*funkcja) (T const,T const))
+	T& find(T obj,bool (*funkcja) (T const,T const))
 	{
-		T tmp = array_pointer[0];
-		for (long long i = 1; i < current_size-1; i++)
+		for (long long i = 0; i < current_size-1; i++)
 		{
-			if (funkcja(tmp, array_pointer[i])) tmp = array_pointer[i];
+			if (funkcja(obj, array_pointer[i]))
+			{
+				return array_pointer[i];
+			}
 		}
-		return tmp;
+		return NULL;
+	}
+
+	bool remove(long long pos)
+	{
+		if (pos < 0 || pos >= current_size) { throw my_exceptions_class(2, "DynamicArray"); }
+		delete(get_element(pos));
+		for (int i = pos; i < this->current_size; i++)
+		{
+			*(array_pointer + pos) = *(array_pointer + pos + 1);
+		}
+		this->current_size--;
+	}
+
+	bool remove(const T obj, bool (*funkcja) (T const, T const))
+	{
+		long long i = 0;
+		for (; i < current_size - 1; i++)
+		{
+			if (funkcja(obj, array_pointer[i]))
+			{
+				//delete this->array_pointer[i];
+				break;
+			}
+		}
+		if (i == this->current_size-1) return false;
+		for (; i < this->current_size; i++)
+		{
+			*(array_pointer + i) = *(array_pointer + i + 1);
+		}
+		this->current_size--;
+		return true;
 	}
 
 	void print(void (*funkcja) (T const))
